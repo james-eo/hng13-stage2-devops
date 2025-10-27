@@ -1,0 +1,46 @@
+# Docker
+.env.local
+.env.production
+
+# Local .env file (contains sensitive data)
+.env
+
+# Logs
+*.log
+
+# Files not needed for HNG submission
+.qodo/
+tasks/
+get-docker.sh
+migrate-to-docker-engine.sh
+test-and-deploy.sh
+test-demo.sh
+PROJECT_SUMMARY.md
+QUICK_GUIDE.md
+RESEARCH_PART_B.md
+mock-app/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+logs/
+
+# Temporary files
+*.tmp
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Node.js (for future use)
+node_modules/
+npm-debug.log*
+
+# System files
+Thumbs.db

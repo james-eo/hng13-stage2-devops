@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx_lb
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/entrypoint.sh:/docker-entrypoint.d/10-configure-upstream.sh:ro
+      - ./nginx/reload.sh:/usr/local/bin/reload.sh:ro
+    environment:
+      - ACTIVE_POOL=${ACTIVE_POOL}
+      - PORT=${PORT:-8080}
+    depends_on:
+      - app_blue
+      - app_green
+    restart: unless-stopped
+    networks:
+      - app_network
+
+  app_blue:
+    image: ${BLUE_IMAGE}
+    container_name: app_blue
+    ports:
+      - "8081:80"
+    environment:
+      - RELEASE_ID=${RELEASE_ID_BLUE}
+      - PORT=80
+      - APP_POOL=blue
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:${PORT:-8080}/healthz || http://localhost:${PORT:-8080}/",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  app_green:
+    image: ${GREEN_IMAGE}
+    container_name: app_green
+    ports:
+      - "8082:80"
+    environment:
+      - RELEASE_ID=${RELEASE_ID_GREEN}
+      - PORT=80
+      - APP_POOL=green
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:${PORT:-8080}/healthz || http://localhost:${PORT:-8080}/",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  app_network:
+    driver: bridge
