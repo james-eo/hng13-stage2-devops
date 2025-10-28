@@ -18,50 +18,42 @@ services:
       - app_network
 
   app_blue:
-    image: ${BLUE_IMAGE}
+    build:
+      context: ./mock-app
+      dockerfile: Dockerfile
     container_name: app_blue
     ports:
-      - "8081:80"
+      - "8081:8080"
     environment:
       - RELEASE_ID=${RELEASE_ID_BLUE}
-      - PORT=80
+      - PORT=8080
       - APP_POOL=blue
     restart: unless-stopped
     networks:
       - app_network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-f",
-          "http://localhost:${PORT:-8080}/healthz || http://localhost:${PORT:-8080}/",
-        ]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
 
   app_green:
-    image: ${GREEN_IMAGE}
+    build:
+      context: ./mock-app
+      dockerfile: Dockerfile
     container_name: app_green
     ports:
-      - "8082:80"
+      - "8082:8080"
     environment:
       - RELEASE_ID=${RELEASE_ID_GREEN}
-      - PORT=80
+      - PORT=8080
       - APP_POOL=green
     restart: unless-stopped
     networks:
       - app_network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-f",
-          "http://localhost:${PORT:-8080}/healthz || http://localhost:${PORT:-8080}/",
-        ]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 10s
       timeout: 5s
       retries: 3

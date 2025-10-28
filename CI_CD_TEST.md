@@ -7,8 +7,9 @@ System Status: ✅ Ready for HNG submission
 ## Repository Contents
 
 Essential files for HNG task:
+
 - ✅ docker-compose.yml
-- ✅ .env.example  
+- ✅ .env.example
 - ✅ README.md
 - ✅ nginx/ (config templates)
 - ✅ DECISION.md
@@ -18,6 +19,7 @@ Essential files for HNG task:
 ## Testing Instructions
 
 1. The CI/CD pipeline will automatically:
+
    - Start the Blue/Green system
    - Run comprehensive failover tests
    - Verify zero-downtime requirements
@@ -33,6 +35,7 @@ Essential files for HNG task:
 ## Production Deployment
 
 Replace the demo images in .env:
+
 ```bash
 BLUE_IMAGE=your-registry/nodejs-app:blue-tag
 GREEN_IMAGE=your-registry/nodejs-app:green-tag
