@@ -8,6 +8,9 @@ CONF_FILE="/etc/nginx/conf.d/default.conf"
 ACTIVE_POOL=${ACTIVE_POOL:-blue}
 PORT=${PORT:-8080}
 
+echo "DEBUG: ACTIVE_POOL=$ACTIVE_POOL"
+echo "DEBUG: PORT=$PORT"
+
 echo "Configuring nginx for active pool: $ACTIVE_POOL"
 
 # Function to generate nginx configuration
@@ -27,6 +30,23 @@ generate_config() {
 # Blue/Green deployment configuration
 # Active pool: $ACTIVE_POOL
 # Generated at: $(date)
+
+# Custom log format for observability
+log_format observability escape=json
+  '{'
+    '"timestamp":"\$time_iso8601",'
+    '"client_ip":"\$remote_addr",'
+    '"method":"\$request_method",'
+    '"uri":"\$uri",'
+    '"status":\$status,'
+    '"pool":"\$upstream_http_x_app_pool",'
+    '"release":"\$upstream_http_x_release_id",'
+    '"upstream_status":"\$upstream_status",'
+    '"upstream_addr":"\$upstream_addr",'
+    '"request_time":\$request_time,'
+    '"upstream_response_time":"\$upstream_response_time",'
+    '"user_agent":"\$http_user_agent"'
+  '}';
 
 upstream backend {
     # Primary server (active pool)
@@ -50,8 +70,9 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     
-    # Logging configuration
-    access_log /var/log/nginx/access.log;
+    # Logging configuration with observability format
+    access_log /var/log/nginx/access.log observability;
+    access_log /shared/logs/nginx_observability.log observability;
     error_log /var/log/nginx/error.log warn;
     
     location / {

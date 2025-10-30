@@ -1,6 +1,6 @@
-# Blue/Green Deployment with Nginx Load Balancer
+# Blue/Green Deployment with Nginx Load Balancer + Observability
 
-A zero-downtime Blue/Green deployment system using nginx for automatic failover and manual traffic switching between identical Node.js application instances.
+A zero-downtime Blue/Green deployment system using nginx for automatic failover and manual traffic switching between identical Node.js application instances. **Extended for HNG Stage 3** with comprehensive observability, real-time log monitoring, and automated Slack alerting.
 
 ## 🚀 Quick Start
 
@@ -318,6 +318,79 @@ For the Backend.im CLI integration research, see [RESEARCH_PART_B.md](./RESEARCH
 - Security considerations and deployment strategies
 
 The research document will also be available as a Google Doc with public access for the HNG submission.
+
+---
+
+## 📊 Stage 3: Observability & Alerts
+
+### Slack Alert System
+
+The system now includes real-time monitoring with Slack notifications for:
+
+- **🔄 Failover Events**: Automatic detection when traffic switches between Blue/Green pools
+- **🚨 High Error Rates**: Alerts when 5xx error rate exceeds threshold (default: 2%)
+- **✅ Recovery Events**: Notifications when service returns to normal
+
+### Enhanced Logging
+
+Nginx access logs now include structured JSON with observability data:
+```json
+{
+  "timestamp": "2025-10-31T15:30:45+00:00",
+  "pool": "blue",
+  "release": "blue-release-v1.0.0",
+  "upstream_status": "200",
+  "upstream_addr": "172.20.0.3:8080",
+  "request_time": 0.023,
+  "upstream_response_time": "0.021"
+}
+```
+
+### Alert Configuration
+
+Configure alerts via environment variables in `.env`:
+
+```bash
+# Slack webhook URL (required)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+# Alert thresholds and timing
+ERROR_RATE_THRESHOLD=2        # Error rate % to trigger alerts
+WINDOW_SIZE=200               # Requests in sliding window
+ALERT_COOLDOWN_SEC=300        # Seconds between repeated alerts
+```
+
+### Testing Alerts
+
+```bash
+# Test failover alert
+curl -X POST http://localhost:8081/chaos/start?mode=error
+sleep 10
+curl http://localhost:8080/version  # Should trigger Slack alert
+
+# Test error rate alert
+for i in {1..50}; do 
+  curl http://localhost:8080/version
+done
+
+# Stop chaos
+curl -X POST http://localhost:8081/chaos/stop
+```
+
+### Viewing Logs
+
+```bash
+# View structured nginx logs
+docker exec nginx_lb tail -f /shared/logs/nginx_observability.log
+
+# View alert watcher logs  
+docker compose logs alert_watcher
+
+# View all container logs
+docker compose logs -f
+```
+
+For detailed operational guidance, see [runbook.md](./runbook.md).
 
 ---
 
