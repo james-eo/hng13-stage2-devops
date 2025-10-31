@@ -334,6 +334,7 @@ The system now includes real-time monitoring with Slack notifications for:
 ### Enhanced Logging
 
 Nginx access logs now include structured JSON with observability data:
+
 ```json
 {
   "timestamp": "2025-10-31T15:30:45+00:00",
@@ -369,7 +370,7 @@ sleep 10
 curl http://localhost:8080/version  # Should trigger Slack alert
 
 # Test error rate alert
-for i in {1..50}; do 
+for i in {1..50}; do
   curl http://localhost:8080/version
 done
 
@@ -383,7 +384,7 @@ curl -X POST http://localhost:8081/chaos/stop
 # View structured nginx logs
 docker exec nginx_lb tail -f /shared/logs/nginx_observability.log
 
-# View alert watcher logs  
+# View alert watcher logs
 docker compose logs alert_watcher
 
 # View all container logs
