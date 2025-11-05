@@ -80,20 +80,36 @@ class ErrorRateMonitor:
         self.threshold_percent = threshold_percent
         self.requests = deque(maxlen=window_size)
         self.lock = threading.Lock()
+        self.in_error_state = False  # Track if we're currently in error state
+        self.recovery_threshold = 0.5  # Must drop below 0.5% to consider recovered
     
-    def add_request(self, status_code: int) -> bool:
-        """Add a request and return True if error rate threshold exceeded"""
+    def add_request(self, status_code: int) -> tuple:
+        """
+        Add a request and check thresholds
+        Returns: (exceeded_threshold, recovered_from_error)
+        """
         with self.lock:
             self.requests.append(status_code)
             
             # Need at least 50 requests before checking error rate
             if len(self.requests) < 50:
-                return False
+                return False, False
             
             error_count = sum(1 for status in self.requests if status >= 500)
             error_rate = (error_count / len(self.requests)) * 100
             
-            return error_rate > self.threshold_percent
+            # Check if threshold exceeded
+            exceeded = error_rate > self.threshold_percent
+            
+            # Check for recovery (was in error state, now below recovery threshold)
+            recovered = False
+            if self.in_error_state and error_rate < self.recovery_threshold:
+                recovered = True
+                self.in_error_state = False
+            elif exceeded:
+                self.in_error_state = True
+            
+            return exceeded, recovered
     
     def get_current_stats(self) -> Dict[str, Any]:
         """Get current error rate statistics"""
@@ -257,14 +273,25 @@ class LogWatcher:
             pool = entry.get('pool', '').lower().strip()
             upstream_status = entry.get('upstream_status', '')
             
-            # Track error rates
+            # Track error rates with recovery detection
             if status_code > 0:
-                if self.error_monitor.add_request(status_code):
+                exceeded, recovered = self.error_monitor.add_request(status_code)
+                
+                # High error rate alert
+                if exceeded:
                     if self.alert_manager.should_alert('error_rate'):
                         stats = self.error_monitor.get_current_stats()
                         logger.warning(f"High error rate detected: {stats}")
                         if self.slack_notifier:
                             self.slack_notifier.send_error_rate_alert(stats)
+                
+                # Recovery alert
+                if recovered:
+                    if self.alert_manager.should_alert('recovery'):
+                        logger.info(f"Service recovered - error rate back to normal")
+                        if self.slack_notifier:
+                            current_pool = pool if pool else 'unknown'
+                            self.slack_notifier.send_recovery_alert(current_pool)
             
             # Track pool changes (failovers)
             if pool:
@@ -308,8 +335,8 @@ class LogWatcher:
         """Main run loop"""
         log_file = "/shared/logs/nginx_observability.log"
         
-        logger.info("Starting HNG DevOps Stage 3 Alert Watcher")
-        logger.info(f"Configuration:")
+        logger.info("Starting Alert Watcher")
+        logger.info(f"Configurations:")
         logger.info(f"  Error threshold: {self.error_threshold}%")
         logger.info(f"  Window size: {self.window_size} requests")
         logger.info(f"  Alert cooldown: {self.cooldown_seconds} seconds")
